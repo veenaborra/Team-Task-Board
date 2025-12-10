@@ -66,4 +66,5 @@ VITE_API_BASE=http://localhost:8000/api
 ## Notes
 - Real-time reflects across multiple browsers; cards show creator and last moved by.
 - If ports differ, update CORS origins in `server/server.js` and `VITE_API_BASE`.
+  ![alt text](board.png)
 
