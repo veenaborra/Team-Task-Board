@@ -116,17 +116,16 @@ export default function TaskBoard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between px-6 py-4 bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow">
+    <div className="min-h-screen bg-slate-50 text-[15px] md:text-base">
+      <header className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between px-6 py-5 bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow">
         <div>
-          <h1 className="text-xl font-semibold">Team Task Board</h1>
-         
+          <h1 className="text-2xl font-semibold">Team Task Board</h1>
         </div>
         <div className="flex items-center gap-3">
-          {session && <span className="text-sm">{session.name || 'You'}</span>}
+          {session && <span className="text-base font-medium">{session.name || 'You'}</span>}
           <button
             onClick={logout}
-            className="rounded-lg bg-white/15 px-3 py-1 text-sm font-semibold text-white hover:bg-white/25 border border-white/20"
+            className="rounded-lg bg-white/15 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/25 border border-white/20"
           >
             Logout
           </button>
@@ -136,21 +135,21 @@ export default function TaskBoard() {
       <main className="px-4 py-6 md:px-6 lg:px-10 max-w-6xl mx-auto">
         <form
           onSubmit={addTask}
-          className="mb-5 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="mb-6 grid gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
         >
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Add Task</h2>
-            {error && <div className="text-sm text-rose-600">{error}</div>}
+            <h2 className="text-xl font-semibold text-slate-900">Add Task</h2>
+            {error && <div className="text-sm md:text-base text-rose-600">{error}</div>}
           </div>
           <input
-            className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="rounded-lg border border-slate-200 px-3.5 py-2.5 text-slate-900 text-base focus:outline-none focus:ring-2 focus:ring-sky-400"
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
           />
           <textarea
-            className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="rounded-lg border border-slate-200 px-3.5 py-2.5 text-slate-900 text-base focus:outline-none focus:ring-2 focus:ring-sky-400"
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -158,7 +157,7 @@ export default function TaskBoard() {
           />
           <button
             type="submit"
-            className="w-full rounded-lg bg-sky-500 px-3 py-2 font-semibold text-white shadow-sm hover:bg-sky-600"
+            className="w-full rounded-lg bg-sky-500 px-3 py-2.5 text-base font-semibold text-white shadow-sm hover:bg-sky-600"
           >
             Create
           </button>
@@ -169,10 +168,10 @@ export default function TaskBoard() {
         ) : (
           <div className="grid gap-4 lg:grid-cols-3 md:grid-cols-2">
             {STATUSES.map((column) => (
-              <div key={column} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              <div key={column} className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
                 <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-800">{column}</h3>
-                  <span className="text-xs rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+                  <h3 className="font-semibold text-slate-800 text-lg">{column}</h3>
+                  <span className="text-xs rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">
                     {tasks.filter((t) => t.status === column).length} items
                   </span>
                 </div>
@@ -182,30 +181,30 @@ export default function TaskBoard() {
                     .map((task) => (
                       <div
                         key={task._id}
-                        className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-slate-900"
+                        className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-slate-900"
                       >
-                        <div className="font-semibold">{task.title}</div>
+                        <div className="font-semibold text-base md:text-lg">{task.title}</div>
                         {task.description && (
-                          <div className="text-sm text-slate-700 mt-1">{task.description}</div>
+                          <div className="text-sm md:text-base text-slate-700 mt-1">{task.description}</div>
                         )}
                         <div className="mt-2 flex flex-wrap gap-2">
                           {STATUSES.filter((s) => s !== task.status).map((s) => (
                             <button
                               key={s}
                               onClick={() => updateStatus(task._id, s)}
-                              className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-200"
+                              className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs md:text-sm text-slate-700 hover:bg-slate-200"
                             >
                               Move to {s}
                             </button>
                           ))}
                           <button
                             onClick={() => deleteTask(task._id)}
-                            className="rounded border border-rose-300 bg-white px-2 py-1 text-xs text-rose-700 hover:bg-rose-50"
+                            className="rounded border border-rose-300 bg-white px-3 py-1.5 text-xs md:text-sm text-rose-700 hover:bg-rose-50"
                           >
                             Delete
                           </button>
                         </div>
-                        <div className="mt-2 text-[11px] text-black-500 space-y-1">
+                        <div className="mt-2 text-[12px] text-slate-600 space-y-1">
                           <div>
                             Created by{' '}
                             {task.creator?._id === session?.userId
@@ -239,7 +238,7 @@ export default function TaskBoard() {
                       </div>
                     ))}
                   {tasks.filter((t) => t.status === column).length === 0 && (
-                    <div className="rounded border border-dashed border-slate-200 p-3 text-sm text-slate-500 bg-slate-50">
+                    <div className="rounded border border-dashed border-slate-200 p-3 text-sm md:text-base text-slate-500 bg-slate-50">
                       No tasks
                     </div>
                   )}
