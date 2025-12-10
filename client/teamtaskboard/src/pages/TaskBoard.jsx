@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../lib/socket.js';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
 const STATUSES = ['To Do', 'Doing', 'Done'];
@@ -52,7 +53,8 @@ export default function TaskBoard() {
   // Realtime subscriptions
   useEffect(() => {
     const socket = getSocket();
-    const handleCreate = (task) => setTasks((prev) => [task, ...prev]);
+    const handleCreate = (task) =>
+      setTasks((prev) => (prev.some((t) => t._id === task._id) ? prev : [task, ...prev]));
     const handleUpdate = (task) =>
       setTasks((prev) => prev.map((t) => (t._id === task._id ? task : t)));
     const handleDelete = ({ _id }) => setTasks((prev) => prev.filter((t) => t._id !== _id));
@@ -81,7 +83,7 @@ export default function TaskBoard() {
       });
       if (!res.ok) throw new Error('Failed to create task');
       const task = await res.json();
-      setTasks((prev) => [task, ...prev]);
+      setTasks((prev) => (prev.some((t) => t._id === task._id) ? prev : [task, ...prev]));
       setTitle('');
       setDescription('');
     } catch (err) {
@@ -186,80 +188,123 @@ export default function TaskBoard() {
         {loading ? (
           <div className="text-slate-600">Loading tasks…</div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-3 md:grid-cols-2">
-            {STATUSES.map((column) => (
-              <div key={column} className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-800 text-lg">{column}</h3>
-                  <span className="text-xs rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">
-                    {tasks.filter((t) => t.status === column).length} items
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {tasks
-                    .filter((t) => t.status === column)
-                    .map((task) => (
-                      <div
-                        key={task._id}
-                        className="rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-slate-900"
-                      >
-                        <div className="font-semibold text-base md:text-lg">{task.title}</div>
-                        {task.description && (
-                          <div className="text-sm md:text-base text-slate-700 mt-1">{task.description}</div>
-                        )}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {STATUSES.filter((s) => s !== task.status).map((s) => (
-                            <button
-                              key={s}
-                              onClick={() => updateStatus(task._id, s)}
-                              className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs md:text-sm text-slate-700 hover:bg-slate-200"
-                            >
-                              Move to {s}
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => deleteTask(task._id)}
-                            className="rounded border border-rose-300 bg-white px-3 py-1.5 text-xs md:text-sm text-rose-700 hover:bg-rose-50"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                        <div className="mt-2 text-[12px] text-slate-600 space-y-1">
-                          <div>
-                            Created by{' '}
-                            {task.creator?.username ||
-                              task.creator?.email ||
-                              (typeof task.creator === 'string' ? task.creator : 'someone')}
-                            {' · '}
-                            {new Date(task.createdAt).toLocaleString()}
-                          </div>
-                          <div>
-                            Last moved by{' '}
-                            {task.lastMovedBy
-                              ? task.lastMovedBy?.username ||
-                                task.lastMovedBy?.email ||
-                                (typeof task.lastMovedBy === 'string'
-                                  ? task.lastMovedBy
-                                  : 'someone')
-                              : task.creator?.username ||
-                                task.creator?.email ||
-                                (typeof task.creator === 'string' ? task.creator : 'someone')}
-                            {task.lastMovedAt
-                              ? ` · ${new Date(task.lastMovedAt).toLocaleString()}`
-                              : ` · ${new Date(task.updatedAt || task.createdAt).toLocaleString()}`}
-                          </div>
-                        </div>
+          <DragDropContext
+            onDragEnd={({ source, destination }) => {
+              if (!destination) return;
+              const sourceStatus = source.droppableId;
+              const destStatus = destination.droppableId;
+              if (sourceStatus === destStatus) return;
+              const dragged = tasks.filter((t) => t.status === sourceStatus)[source.index];
+              if (!dragged) return;
+              // optimistic update
+              setTasks((prev) =>
+                prev.map((t) => (t._id === dragged._id ? { ...t, status: destStatus } : t))
+              );
+              updateStatus(dragged._id, destStatus);
+            }}
+          >
+            <div className="grid gap-4 lg:grid-cols-3 md:grid-cols-2">
+              {STATUSES.map((column) => (
+                <Droppable droppableId={column} key={column}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm transition ${
+                        snapshot.isDraggingOver ? 'ring-2 ring-sky-300 bg-sky-50' : ''
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <h3 className="font-semibold text-slate-800 text-lg">{column}</h3>
+                        <span className="text-xs rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">
+                          {tasks.filter((t) => t.status === column).length} items
+                        </span>
                       </div>
-                    ))}
-                  {tasks.filter((t) => t.status === column).length === 0 && (
-                    <div className="rounded border border-dashed border-slate-200 p-3 text-sm md:text-base text-slate-500 bg-slate-50">
-                      No tasks
+                      <div className="space-y-3">
+                        {tasks
+                          .filter((t) => t.status === column)
+                          .map((task, idx) => (
+                            <Draggable draggableId={task._id} index={idx} key={task._id}>
+                              {(dragProvided, dragSnapshot) => (
+                                <div
+                                  ref={dragProvided.innerRef}
+                                  {...dragProvided.draggableProps}
+                                  {...dragProvided.dragHandleProps}
+                                  className={`rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-slate-900 transition ${
+                                    dragSnapshot.isDragging ? 'shadow-lg ring-2 ring-sky-200' : ''
+                                  }`}
+                                >
+                                  <div className="font-semibold text-base md:text-lg">
+                                    {task.title}
+                                  </div>
+                                  {task.description && (
+                                    <div className="text-sm md:text-base text-slate-700 mt-1">
+                                      {task.description}
+                                    </div>
+                                  )}
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <button
+                                      onClick={() =>
+                                        updateStatus(
+                                          task._id,
+                                          STATUSES[(STATUSES.indexOf(task.status) + 1) % STATUSES.length]
+                                        )
+                                      }
+                                      className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs md:text-sm text-slate-700 hover:bg-slate-200"
+                                    >
+                                      Move forward
+                                    </button>
+                                    <button
+                                      onClick={() => deleteTask(task._id)}
+                                      className="rounded border border-rose-300 bg-white px-3 py-1.5 text-xs md:text-sm text-rose-700 hover:bg-rose-50"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                  <div className="mt-2 text-[12px] text-slate-600 space-y-1">
+                                    <div>
+                                      Created by{' '}
+                                      {task.creator?.username ||
+                                        task.creator?.email ||
+                                        (typeof task.creator === 'string' ? task.creator : 'someone')}
+                                      {' · '}
+                                      {new Date(task.createdAt).toLocaleString()}
+                                    </div>
+                                    <div>
+                                      Last moved by{' '}
+                                      {task.lastMovedBy
+                                        ? task.lastMovedBy?.username ||
+                                          task.lastMovedBy?.email ||
+                                          (typeof task.lastMovedBy === 'string'
+                                            ? task.lastMovedBy
+                                            : 'someone')
+                                        : task.creator?.username ||
+                                          task.creator?.email ||
+                                          (typeof task.creator === 'string'
+                                            ? task.creator
+                                            : 'someone')}
+                                      {task.lastMovedAt
+                                        ? ` · ${new Date(task.lastMovedAt).toLocaleString()}`
+                                        : ` · ${new Date(task.updatedAt || task.createdAt).toLocaleString()}`}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                        {provided.placeholder}
+                        {tasks.filter((t) => t.status === column).length === 0 && (
+                          <div className="rounded border border-dashed border-slate-200 p-3 text-sm md:text-base text-slate-500 bg-slate-50">
+                            No tasks
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
-                </div>
-              </div>
-            ))}
-          </div>
+                </Droppable>
+              ))}
+            </div>
+          </DragDropContext>
         )}
       </main>
     </div>

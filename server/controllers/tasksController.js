@@ -2,6 +2,14 @@ import mongoose from 'mongoose';
 import Task from '../models/taskModel.js';
 import { getIO } from '../socket.js';
 
+const normalizeTask = (doc) => {
+  const obj = doc.toObject({ getters: true });
+  if (obj._id) obj._id = obj._id.toString();
+  if (obj.creator && obj.creator._id) obj.creator._id = obj.creator._id.toString();
+  if (obj.lastMovedBy && obj.lastMovedBy._id) obj.lastMovedBy._id = obj.lastMovedBy._id.toString();
+  return obj;
+};
+
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 export const listTasks = async (req, res) => {
@@ -34,12 +42,13 @@ export const createTask = async (req, res) => {
       { path: 'creator', select: 'username email' },
       { path: 'lastMovedBy', select: 'username email' },
     ]);
+    const payload = normalizeTask(populated);
     try {
-      getIO().emit('task:create', populated);
+      getIO().emit('task:create', payload);
     } catch (e) {
       console.warn('Socket emit failed (create)', e.message);
     }
-    res.status(201).json(populated);
+    res.status(201).json(payload);
 
   } catch (err) {
     console.error('createTask error', err);
@@ -84,12 +93,13 @@ export const updateTask = async (req, res) => {
       { path: 'creator', select: 'username email' },
       { path: 'lastMovedBy', select: 'username email' },
     ]);
+    const payload = normalizeTask(populated);
     try {
-      getIO().emit('task:update', populated);
+      getIO().emit('task:update', payload);
     } catch (e) {
       console.warn('Socket emit failed (update)', e.message);
     }
-    res.json(populated);
+    res.json(payload);
   } catch (err) {
     console.error('updateTask error', err);
     res.status(500).json({ message: 'Failed to update task' });
