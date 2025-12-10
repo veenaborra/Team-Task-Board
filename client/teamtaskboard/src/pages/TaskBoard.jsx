@@ -244,17 +244,6 @@ export default function TaskBoard() {
                                   )}
                                   <div className="mt-2 flex flex-wrap gap-2">
                                     <button
-                                      onClick={() =>
-                                        updateStatus(
-                                          task._id,
-                                          STATUSES[(STATUSES.indexOf(task.status) + 1) % STATUSES.length]
-                                        )
-                                      }
-                                      className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs md:text-sm text-slate-700 hover:bg-slate-200"
-                                    >
-                                      Move forward
-                                    </button>
-                                    <button
                                       onClick={() => deleteTask(task._id)}
                                       className="rounded border border-rose-300 bg-white px-3 py-1.5 text-xs md:text-sm text-rose-700 hover:bg-rose-50"
                                     >
