@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Task from '../models/taskModel.js';
+import { getIO } from '../socket.js';
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -30,11 +31,15 @@ export const createTask = async (req, res) => {
       lastMovedAt: Date.now(),
     });
     const populated = await task.populate([
-  { path: 'creator', select: 'username email' },
-  { path: 'lastMovedBy', select: 'username email' }
-]);
-
-res.json(populated);
+      { path: 'creator', select: 'username email' },
+      { path: 'lastMovedBy', select: 'username email' },
+    ]);
+    try {
+      getIO().emit('task:create', populated);
+    } catch (e) {
+      console.warn('Socket emit failed (create)', e.message);
+    }
+    res.status(201).json(populated);
 
   } catch (err) {
     console.error('createTask error', err);
@@ -75,12 +80,16 @@ export const updateTask = async (req, res) => {
 
     await task.save();
 
-   const populated = await task.populate([
-  { path: 'creator', select: 'username email' },
-  { path: 'lastMovedBy', select: 'username email' }
-]);
-
-res.json(populated);
+    const populated = await task.populate([
+      { path: 'creator', select: 'username email' },
+      { path: 'lastMovedBy', select: 'username email' },
+    ]);
+    try {
+      getIO().emit('task:update', populated);
+    } catch (e) {
+      console.warn('Socket emit failed (update)', e.message);
+    }
+    res.json(populated);
   } catch (err) {
     console.error('updateTask error', err);
     res.status(500).json({ message: 'Failed to update task' });
@@ -101,6 +110,11 @@ export const deleteTask = async (req, res) => {
     }
 
     await task.deleteOne();
+    try {
+      getIO().emit('task:delete', { _id: id });
+    } catch (e) {
+      console.warn('Socket emit failed (delete)', e.message);
+    }
     res.json({ message: 'Task deleted' });
   } catch (err) {
     console.error('deleteTask error', err);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getSocket } from '../lib/socket.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
 const STATUSES = ['To Do', 'Doing', 'Done'];
@@ -46,6 +47,25 @@ export default function TaskBoard() {
 
   useEffect(() => {
     fetchTasks();
+  }, []);
+
+  // Realtime subscriptions
+  useEffect(() => {
+    const socket = getSocket();
+    const handleCreate = (task) => setTasks((prev) => [task, ...prev]);
+    const handleUpdate = (task) =>
+      setTasks((prev) => prev.map((t) => (t._id === task._id ? task : t)));
+    const handleDelete = ({ _id }) => setTasks((prev) => prev.filter((t) => t._id !== _id));
+
+    socket.on('task:create', handleCreate);
+    socket.on('task:update', handleUpdate);
+    socket.on('task:delete', handleDelete);
+
+    return () => {
+      socket.off('task:create', handleCreate);
+      socket.off('task:update', handleUpdate);
+      socket.off('task:delete', handleDelete);
+    };
   }, []);
 
   const addTask = async (e) => {
@@ -207,29 +227,23 @@ export default function TaskBoard() {
                         <div className="mt-2 text-[12px] text-slate-600 space-y-1">
                           <div>
                             Created by{' '}
-                            {task.creator?._id === session?.userId
-                              ? 'you'
-                              : task.creator?.username ||
-                                task.creator?.email ||
-                                (typeof task.creator === 'string' ? task.creator : 'teammate')}
+                            {task.creator?.username ||
+                              task.creator?.email ||
+                              (typeof task.creator === 'string' ? task.creator : 'someone')}
                             {' · '}
                             {new Date(task.createdAt).toLocaleString()}
                           </div>
                           <div>
                             Last moved by{' '}
                             {task.lastMovedBy
-                              ? task.lastMovedBy?._id === session?.userId
-                                ? 'you'
-                                : task.lastMovedBy?.username ||
-                                  task.lastMovedBy?.email ||
-                                  (typeof task.lastMovedBy === 'string'
-                                    ? task.lastMovedBy
-                                    : 'teammate')
-                              : task.creator?._id === session?.userId
-                              ? 'you'
+                              ? task.lastMovedBy?.username ||
+                                task.lastMovedBy?.email ||
+                                (typeof task.lastMovedBy === 'string'
+                                  ? task.lastMovedBy
+                                  : 'someone')
                               : task.creator?.username ||
                                 task.creator?.email ||
-                                (typeof task.creator === 'string' ? task.creator : 'teammate')}
+                                (typeof task.creator === 'string' ? task.creator : 'someone')}
                             {task.lastMovedAt
                               ? ` · ${new Date(task.lastMovedAt).toLocaleString()}`
                               : ` · ${new Date(task.updatedAt || task.createdAt).toLocaleString()}`}
